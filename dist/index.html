@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetingSage - 会议智能引导数字人</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1; --secondary: #8b5cf6; --accent: #f472b6;
+            --success: #34d399; --warning: #fbbf24; --error: #f87171;
+            --bg-dark: #0f172a; --bg-card: rgba(30, 41, 59, 0.8);
+            --text-primary: #f8fafc; --text-secondary: #94a3b8;
+        }
+        body { font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); min-height: 100vh; color: #f8fafc; overflow-x: hidden; }
+        .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 0; }
+        .particle { position: absolute; width: 4px; height: 4px; background: rgba(99, 102, 241, 0.3); border-radius: 50%; animation: float-particle 15s infinite linear; }
+        @keyframes float-particle { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; } }
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
+        .glass-light { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+        .gradient-text { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #f472b6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .app-container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px; min-height: 100vh; display: flex; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; margin-bottom: 24px; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .logo-text h1 { font-size: 24px; font-weight: 700; }
+        .logo-text p { font-size: 12px; color: var(--text-secondary); }
+        .tab-nav { display: flex; gap: 8px; padding: 8px; margin-bottom: 24px; }
+        .tab-btn { flex: 1; padding: 14px 20px; border: none; background: transparent; color: var(--text-secondary); border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease; }
+        .tab-btn:hover { background: rgba(255, 255, 255, 0.05); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3); }
+        .tab-btn span { font-size: 18px; }
+        .main-content { display: flex; gap: 24px; flex: 1; }
+        .content-area { flex: 1; }
+        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 20px; }
+        .sidebar-card { padding: 20px; }
+        .sidebar-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .sidebar-title span { font-size: 18px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); font-size: 14px; }
+        .stat-value { font-weight: 500; }
+        .principle-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 8px; }
+        .principle-item:last-child { margin-bottom: 0; }
+        .avatar-section { display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .avatar-container { position: relative; width: 200px; height: 200px; margin-bottom: 20px; }
+        .avatar-glow { position: absolute; inset: 0; background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%); border-radius: 50%; animation: pulse-glow 2s ease-in-out infinite; }
+        @keyframes pulse-glow { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 0.8; } }
+        .avatar-body { position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 40px rgba(99, 102, 241, 0.4); animation: breathe 3s ease-in-out infinite; cursor: pointer; transition: transform 0.3s ease; }
+        .avatar-body:hover { transform: scale(1.05); }
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+        .avatar-eyes { display: flex; gap: 24px; margin-bottom: 16px; }
+        .avatar-eye { width: 24px; height: 24px; background: white; border-radius: 50%; position: relative; }
+        .avatar-pupil { width: 12px; height: 12px; background: #1e293b; border-radius: 50%; position: absolute; top: 4px; left: 4px; transition: transform 0.2s ease; }
+        .avatar-mouth { width: 40px; height: 20px; border-bottom: 4px solid white; border-radius: 0 0 20px 20px; }
+        .avatar-name { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); padding: 8px 16px; background: var(--bg-card); border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+        .panel { display: none; }
+        .panel.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .section-card { padding: 24px; margin-bottom: 20px; }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .section-title span { font-size: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+        .form-input { width: 100%; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: var(--text-primary); font-size: 14px; transition: all 0.3s ease; }
+        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+        .avatar-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .avatar-option { padding: 12px 8px; text-align: center; border-radius: 12px; border: 2px solid transparent; background: rgba(255, 255, 255, 0.05); cursor: pointer; transition: all 0.3s ease; }
+        .avatar-option:hover { background: rgba(255, 255, 255, 0.1); }
+        .avatar-option.selected { border-color: var(--primary); background: rgba(99, 102, 241, 0.2); }
+        .avatar-option-icon { font-size: 28px; margin-bottom: 4px; }
+        .avatar-option-label { font-size: 12px; color: var(--text-secondary); }
+        .voice-options { display: flex; flex-direction: column; gap: 8px; }
+        .voice-option { padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
+        .voice-option:hover { background: rgba(255, 255, 255, 0.1); }
+        .voice-option.selected { border-color: var(--primary); background: rgba(99, 102, 241, 0.2); }
+        .voice-option-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .voice-option-desc { font-size: 12px; color: var(--text-secondary); }
+        .values-list { display: flex; flex-direction: column; gap: 8px; }
+        .value-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .value-item-icon { color: var(--primary); }
+        .value-item-text { flex: 1; font-size: 14px; }
+        .value-item-delete { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 14px; }
+        .value-item-delete:hover { color: var(--error); }
+        .add-value { display: flex; gap: 8px; margin-top: 12px; }
+        .add-value .form-input { flex: 1; }
+        .add-value button { padding: 12px 16px; background: var(--primary); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: 500; }
+        .principles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .principle-card { padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+        .principle-card.disabled { background: rgba(255, 255, 255, 0.05); opacity: 0.5; }
+        .principle-card.enabled { background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); }
+        .principle-icon { font-size: 32px; margin-bottom: 8px; }
+        .principle-name { font-size: 14px; font-weight: 500; }
+        .principle-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .flow-list { display: flex; flex-direction: column; gap: 12px; }
+        .flow-card { background: rgba(255, 255, 255, 0.05); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; }
+        .flow-card.expanded { background: rgba(255, 255, 255, 0.08); }
+        .flow-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .flow-header:hover { background: rgba(255, 255, 255, 0.05); }
+        .flow-info { display: flex; align-items: center; gap: 12px; }
+        .flow-icon { font-size: 28px; }
+        .flow-name { font-size: 16px; font-weight: 500; }
+        .flow-meta { font-size: 12px; color: var(--text-secondary); }
+        .flow-arrow { font-size: 20px; transition: transform 0.3s ease; }
+        .flow-card.expanded .flow-arrow { transform: rotate(180deg); }
+        .flow-content { display: none; padding: 0 16px 16px; }
+        .flow-card.expanded .flow-content { display: block; }
+        .flow-phases { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .phase-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .phase-number { width: 28px; height: 28px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .phase-content { flex: 1; }
+        .phase-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .phase-name { font-size: 14px; font-weight: 500; }
+        .phase-duration { font-size: 12px; color: var(--text-secondary); }
+        .phase-instruction { font-size: 13px; color: var(--text-secondary); }
+        .start-meeting-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .start-meeting-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); }
+        .meeting-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; margin-bottom: 20px; }
+        .meeting-status { display: flex; align-items: center; gap: 12px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--success); }
+        .status-dot.active { background: var(--success); animation: pulse 1.5s ease-in-out infinite; }
+        .status-dot.paused { background: var(--warning); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .meeting-title { font-size: 18px; font-weight: 600; }
+        .meeting-subtitle { font-size: 12px; color: var(--text-secondary); }
+        .meeting-controls { display: flex; gap: 8px; }
+        .control-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: rgba(255, 255, 255, 0.1); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.3s ease; }
+        .control-btn:hover { background: rgba(255, 255, 255, 0.2); }
+        .control-btn.recording { background: var(--error); animation: pulse 1s ease-in-out infinite; }
+        .control-btn.speaking { background: var(--success); }
+        .meeting-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+        .meeting-left { display: flex; flex-direction: column; gap: 16px; }
+        .timer-container { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+        .timer-ring { transform: rotate(-90deg); }
+        .timer-bg { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 12; }
+        .timer-progress { fill: none; stroke: var(--primary); stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+        .timer-progress.warning { stroke: var(--warning); }
+        .timer-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .timer-phase { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+        .timer-display { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .timer-paused { font-size: 12px; color: var(--warning); margin-top: 4px; }
+        .timer-warning-ring { position: absolute; inset: -4px; border: 3px solid var(--warning); border-radius: 50%; animation: pulse 0.5s ease-in-out infinite; }
+        .timer-controls { display: flex; gap: 8px; justify-content: center; }
+        .timer-btn { padding: 10px 20px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; }
+        .timer-btn.pause { background: var(--primary); color: white; }
+        .timer-btn.pause:hover { background: #5558e3; }
+        .timer-btn.reset { background: rgba(255, 255, 255, 0.1); color: white; }
+        .timer-btn.reset:hover { background: rgba(255, 255, 255, 0.2); }
+        .participants-card { width: 100%; max-width: 300px; padding: 16px; }
+        .participants-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .participants-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .participants-count { font-size: 12px; color: var(--text-secondary); }
+        .participants-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .participant-tag { padding: 6px 12px; background: rgba(99, 102, 241, 0.2); border-radius: 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .participant-remove { cursor: pointer; color: var(--text-secondary); transition: color 0.3s ease; }
+        .participant-remove:hover { color: var(--error); }
+        .add-participant { display: flex; gap: 8px; }
+        .add-participant .form-input { flex: 1; padding: 8px 12px; font-size: 13px; }
+        .add-participant-btn { width: 36px; height: 36px; background: rgba(99, 102, 241, 0.2); border: none; border-radius: 8px; color: var(--primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        .add-participant-btn:hover { background: rgba(99, 102, 241, 0.3); }
+        .record-panel { margin-top: 16px; padding: 16px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; }
+        .record-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .record-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .record-status { font-size: 12px; color: var(--text-secondary); }
+        .record-status.recording { color: var(--error); animation: blink 1s ease-in-out infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .record-controls { display: flex; gap: 8px; }
+        .record-btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.3s ease; }
+        .record-btn.start { background: var(--error); color: white; }
+        .record-btn.start:hover { background: #dc2626; }
+        .record-btn.stop { background: rgba(255, 255, 255, 0.1); color: white; }
+        .record-btn.stop:hover { background: rgba(255, 255, 255, 0.2); }
+        .record-duration { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; padding: 8px; }
+        .record-waves { display: flex; align-items: center; justify-content: center; gap: 3px; height: 30px; margin: 8px 0; }
+        .wave-bar { width: 4px; height: 10px; background: var(--error); border-radius: 2px; animation: wave 0.5s ease-in-out infinite; }
+        .wave-bar:nth-child(1) { animation-delay: 0s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+        @keyframes wave { 0%, 100% { height: 10px; } 50% { height: 30px; } }
+        .speech-panel { margin-top: 16px; padding: 16px; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 12px; }
+        .speech-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .speech-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .speech-controls { display: flex; gap: 8px; }
+        .speech-btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.3s ease; }
+        .speech-btn.speak { background: var(--success); color: white; }
+        .speech-btn.speak:hover { background: #10b981; }
+        .speech-btn.stop { background: rgba(255, 255, 255, 0.1); color: white; }
+        .speech-input { width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--text-primary); font-size: 13px; resize: none; min-height: 60px; }
+        .speech-input:focus { outline: none; border-color: var(--success); }
+        .idle-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; text-align: center; }
+        .idle-title { font-size: 24px; font-weight: 700; margin: 24px 0 16px; }
+        .idle-text { color: var(--text-secondary); max-width: 400px; margin-bottom: 24px; }
+        .idle-btn { padding: 14px 32px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .idle-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-card); border-radius: 20px; padding: 24px; max-width: 400px; width: 90%; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        .modal-text { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .modal-btn.primary { background: var(--primary); color: white; }
+        .modal-btn.secondary { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+        .chat-section { padding: 16px; height: 500px; display: flex; flex-direction: column; }
+        .chat-header { font-size: 14px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+        .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; position: relative; animation: bubbleIn 0.3s ease; }
+        @keyframes bubbleIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chat-bubble.avatar { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 16px 16px 16px 4px; align-self: flex-start; }
+        .chat-bubble.user { background: linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(236, 72, 153, 0.2)); border: 1px solid rgba(244, 114, 182, 0.3); border-radius: 16px 16px 4px 16px; align-self: flex-end; }
+        .chat-text { font-size: 14px; line-height: 1.5; }
+        .chat-time { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .quick-action { padding: 8px 12px; background: rgba(255, 255, 255, 0.05); border: none; border-radius: 8px; font-size: 12px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.3s ease; }
+        .quick-action:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.02); }
+        .notes-section { border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 16px; padding-top: 16px; }
+        .notes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .notes-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .notes-actions { display: flex; gap: 8px; }
+        .notes-btn { padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border: none; border-radius: 8px; color: var(--text-primary); font-size: 12px; cursor: pointer; transition: all 0.3s ease; }
+        .notes-btn:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.02); }
+        .notes-list { max-height: 200px; overflow-y: auto; }
+        .note-item { padding: 8px 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
+        .note-item:last-child { margin-bottom: 0; }
+        .note-time { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+        .note-content { flex: 1; font-size: 13px; line-height: 1.4; }
+        .note-delete { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 2px; font-size: 14px; }
+        .note-delete:hover { color: var(--error); }
+        .add-note-form { display: flex; gap: 8px; margin-top: 12px; }
+        .add-note-form input { flex: 1; padding: 8px 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--text-primary); font-size: 13px; }
+        .add-note-form input:focus { outline: none; border-color: var(--primary); }
+        .add-note-form button { padding: 8px 16px; background: var(--primary); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 13px; }
+        @media (max-width: 1024px) { .main-content { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; } .sidebar-card { flex: 1; min-width: 280px; } .meeting-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .tab-nav { flex-wrap: wrap; } .tab-btn { flex: 1 1 45%; } .avatar-options { grid-template-columns: repeat(3, 1fr); } .principles-grid { grid-template-columns: 1fr; } }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); border-radius: 4px; } ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.7); }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    <div class="app-container">
+        <header class="header glass">
+            <div class="logo">
+                <div class="logo-icon">🤖</div>
+                <div class="logo-text"><h1 class="gradient-text">MeetingSage</h1><p>智能会议引导数字人</p></div>
+            </div>
+            <div id="headerAvatar" class="avatar-container" style="width:48px;height:48px;">
+                <div class="avatar-body" style="width:48px;height:48px;border-radius:12px;">
+                    <div class="avatar-eyes" style="gap:12px;">
+                        <div class="avatar-eye" style="width:12px;height:12px;"><div class="avatar-pupil" style="width:6px;height:6px;top:2px;left:2px;"></div></div>
+                        <div class="avatar-eye" style="width:12px;height:12px;"><div class="avatar-pupil" style="width:6px;height:6px;top:2px;left:2px;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <nav class="tab-nav glass">
+            <button class="tab-btn active" data-tab="soul"><span>✨</span>灵魂</button>
+            <button class="tab-btn" data-tab="principles"><span>⚖️</span>原则</button>
+            <button class="tab-btn" data-tab="flows"><span>🗺️</span>流程</button>
+            <button class="tab-btn" data-tab="meeting"><span>📅</span>会议</button>
+        </nav>
+        <div class="main-content" id="configMode">
+            <div class="content-area">
+                <div class="panel active" id="panel-soul">
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>👤</span> 基本信息</h3>
+                        <div class="form-group">
+                            <label class="form-label">数字人名称</label>
+                            <input type="text" class="form-input" id="avatarName" placeholder="输入名称..." maxlength="8" value="慧慧">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">头像风格</label>
+                            <div class="avatar-options">
+                                <div class="avatar-option" data-style="professional"><div class="avatar-option-icon">👔</div><div class="avatar-option-label">专业正式</div></div>
+                                <div class="avatar-option" data-style="friendly"><div class="avatar-option-icon">😊</div><div class="avatar-option-label">亲切友好</div></div>
+                                <div class="avatar-option selected" data-style="futuristic"><div class="avatar-option-icon">🤖</div><div class="avatar-option-label">未来科技</div></div>
+                                <div class="avatar-option" data-style="creative"><div class="avatar-option-icon">🎨</div><div class="avatar-option-label">创意艺术</div></div>
+                                <div class="avatar-option" data-style="minimal"><div class="avatar-option-icon">⬜</div><div class="avatar-option-label">极简抽象</div></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">声音风格</label>
+                            <div class="voice-options">
+                                <div class="voice-option" data-voice="calm"><div class="voice-option-title">沉稳冷静</div><div class="voice-option-desc">低沉平稳，适合严肃讨论</div></div>
+                                <div class="voice-option" data-voice="enthusiastic"><div class="voice-option-title">热情洋溢</div><div class="voice-option-desc">活力四射，激励团队</div></div>
+                                <div class="voice-option selected" data-voice="gentle"><div class="voice-option-title">温柔细腻</div><div class="voice-option-desc">轻声细语，关怀氛围</div></div>
+                                <div class="voice-option" data-voice="authoritative"><div class="voice-option-title">权威专业</div><div class="voice-option-desc">铿锵有力，引导方向</div></div>
+                                <div class="voice-option" data-voice="humorous"><div class="voice-option-title">幽默风趣</div><div class="voice-option-desc">机智俏皮，活跃气氛</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>💎</span> 核心价值观</h3>
+                        <div class="values-list" id="valuesList"></div>
+                        <div class="add-value">
+                            <input type="text" class="form-input" id="newValueInput" placeholder="添加新的价值观...">
+                            <button onclick="addValue()">添加</button>
+                        </div>
+                    </div>
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>💬</span> 说话风格</h3>
+                        <div class="voice-options">
+                            <div class="voice-option selected" data-style="formal"><div class="voice-option-title">正式严谨</div><div class="voice-option-desc">规范正式，适合商务场合</div></div>
+                            <div class="voice-option" data-style="casual"><div class="voice-option-title">轻松随意</div><div class="voice-option-desc">亲切自然，适合日常沟通</div></div>
+                            <div class="voice-option" data-style="humorous"><div class="voice-option-title">幽默风趣</div><div class="voice-option-desc">轻松活泼，活跃气氛</div></div>
+                            <div class="voice-option" data-style="poetic"><div class="voice-option-title">诗意文雅</div><div class="voice-option-desc">优美典雅，富有内涵</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="panel-principles">
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>⚖️</span> 会议原则配置</h3>
+                        <p class="form-label" style="margin-bottom:16px;">启用数字人在会议中会强调的原则，点击切换状态</p>
+                        <div class="principles-grid">
+                            <div class="principle-card enabled" data-principle="time"><div class="principle-icon">⏱️</div><div class="principle-name">守时原则</div><div class="principle-desc">严格控制时间</div></div>
+                            <div class="principle-card enabled" data-principle="equality"><div class="principle-icon">⚖️</div><div class="principle-name">平等原则</div><div class="principle-desc">每人都有发言权</div></div>
+                            <div class="principle-card enabled" data-principle="consensus"><div class="principle-icon">🤝</div><div class="principle-name">共识原则</div><div class="principle-desc">寻求共同认可</div></div>
+                            <div class="principle-card disabled" data-principle="emotion"><div class="principle-icon">💗</div><div class="principle-name">情感原则</div><div class="principle-desc">关注团队情绪</div></div>
+                            <div class="principle-card enabled" data-principle="result"><div class="principle-icon">🎯</div><div class="principle-name">效率原则</div><div class="principle-desc">聚焦目标产出</div></div>
+                            <div class="principle-card disabled" data-principle="creativity"><div class="principle-icon">💡</div><div class="principle-name">创意原则</div><div class="principle-desc">鼓励创新思维</div></div>
+                        </div>
+                    </div>
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>💡</span> 使用提示</h3>
+                        <p class="tip-item">• 启用的原则会在会议中自动强调</p>
+                        <p class="tip-item">• 数字人会根据原则调整引导策略</p>
+                        <p class="tip-item">• 可以随时切换原则的启用状态</p>
+                    </div>
+                </div>
+                <div class="panel" id="panel-flows">
+                    <div class="section-card glass">
+                        <h3 class="section-title"><span>🗺️</span> 会议流程模板</h3>
+                        <p class="form-label" style="margin-bottom:16px;">选择适合的会议模板，点击查看详情并开始会议</p>
+                        <div class="flow-list">
+                            <div class="flow-card">
+                                <div class="flow-header" onclick="toggleFlow(this)">
+                                    <div class="flow-info">
+                                        <span class="flow-icon">💡</span>
+                                        <div><div class="flow-name">头脑风暴</div><div class="flow-meta">4个阶段 · 20分钟</div></div>
+                                    </div>
+                                    <span class="flow-arrow">▼</span>
+                                </div>
+                                <div class="flow-content">
+                                    <div class="flow-phases">
+                                        <div class="phase-item"><div class="phase-number">1</div><div class="phase-content"><div class="phase-header"><span class="phase-name">开场介绍</span><span class="phase-duration">⏱️ 2分钟</span></div><div class="phase-instruction">介绍会议目标和规则</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">2</div><div class="phase-content"><div class="phase-header"><span class="phase-name">自由发散</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">鼓励所有创意想法，不批评</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">3</div><div class="phase-content"><div class="phase-header"><span class="phase-name">分类整理</span><span class="phase-duration">⏱️ 5分钟</span></div><div class="phase-instruction">将相似想法归类分组</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">4</div><div class="phase-content"><div class="phase-header"><span class="phase-name">投票排序</span><span class="phase-duration">⏱️ 3分钟</span></div><div class="phase-instruction">选出最有价值的想法</div></div></div>
+                                    </div>
+                                    <button class="start-meeting-btn" onclick="startMeeting('brainstorm')">▶️ 开始会议</button>
+                                </div>
+                            </div>
+                            <div class="flow-card">
+                                <div class="flow-header" onclick="toggleFlow(this)">
+                                    <div class="flow-info"><span class="flow-icon">⚖️</span><div><div class="flow-name">决策讨论</div><div class="flow-meta">4个阶段 · 30分钟</div></div></div>
+                                    <span class="flow-arrow">▼</span>
+                                </div>
+                                <div class="flow-content">
+                                    <div class="flow-phases">
+                                        <div class="phase-item"><div class="phase-number">1</div><div class="phase-content"><div class="phase-header"><span class="phase-name">背景说明</span><span class="phase-duration">⏱️ 5分钟</span></div><div class="phase-instruction">阐述决策的背景和重要性</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">2</div><div class="phase-content"><div class="phase-header"><span class="phase-name">选项分析</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">列出所有可能的选项</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">3</div><div class="phase-content"><div class="phase-header"><span class="phase-name">利弊辩论</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">分析每个选项的优缺点</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">4</div><div class="phase-content"><div class="phase-header"><span class="phase-name">决策确认</span><span class="phase-duration">⏱️ 5分钟</span></div><div class="phase-instruction">达成最终决策</div></div></div>
+                                    </div>
+                                    <button class="start-meeting-btn" onclick="startMeeting('decision')">▶️ 开始会议</button>
+                                </div>
+                            </div>
+                            <div class="flow-card">
+                                <div class="flow-header" onclick="toggleFlow(this)">
+                                    <div class="flow-info"><span class="flow-icon">🔄</span><div><div class="flow-name">项目复盘</div><div class="flow-meta">4个阶段 · 40分钟</div></div></div>
+                                    <span class="flow-arrow">▼</span>
+                                </div>
+                                <div class="flow-content">
+                                    <div class="flow-phases">
+                                        <div class="phase-item"><div class="phase-number">1</div><div class="phase-content"><div class="phase-header"><span class="phase-name">成果回顾</span><span class="phase-duration">⏱️ 5分钟</span></div><div class="phase-instruction">总结已完成的工作和成果</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">2</div><div class="phase-content"><div class="phase-header"><span class="phase-name">问题挖掘</span><span class="phase-duration">⏱️ 15分钟</span></div><div class="phase-instruction">找出过程中遇到的问题</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">3</div><div class="phase-content"><div class="phase-header"><span class="phase-name">原因分析</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">深入分析问题根因</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">4</div><div class="phase-content"><div class="phase-header"><span class="phase-name">改进计划</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">制定未来改进措施</div></div></div>
+                                    </div>
+                                    <button class="start-meeting-btn" onclick="startMeeting('review')">▶️ 开始会议</button>
+                                </div>
+                            </div>
+                            <div class="flow-card">
+                                <div class="flow-header" onclick="toggleFlow(this)">
+                                    <div class="flow-info"><span class="flow-icon">📋</span><div><div class="flow-name">每日站会</div><div class="flow-meta">3个阶段 · 15分钟</div></div></div>
+                                    <span class="flow-arrow">▼</span>
+                                </div>
+                                <div class="flow-content">
+                                    <div class="flow-phases">
+                                        <div class="phase-item"><div class="phase-number">1</div><div class="phase-content"><div class="phase-header"><span class="phase-name">昨日完成</span><span class="phase-duration">⏱️ 4分钟</span></div><div class="phase-instruction">汇报昨天完成的工作</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">2</div><div class="phase-content"><div class="phase-header"><span class="phase-name">今日计划</span><span class="phase-duration">⏱️ 4分钟</span></div><div class="phase-instruction">说明今天的工作计划</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">3</div><div class="phase-content"><div class="phase-header"><span class="phase-name">障碍识别</span><span class="phase-duration">⏱️ 7分钟</span></div><div class="phase-instruction">提出遇到的阻碍</div></div></div>
+                                    </div>
+                                    <button class="start-meeting-btn" onclick="startMeeting('standup')">▶️ 开始会议</button>
+                                </div>
+                            </div>
+                            <div class="flow-card">
+                                <div class="flow-header" onclick="toggleFlow(this)">
+                                    <div class="flow-info"><span class="flow-icon">🎯</span><div><div class="flow-name">规划会议</div><div class="flow-meta">5个阶段 · 60分钟</div></div></div>
+                                    <span class="flow-arrow">▼</span>
+                                </div>
+                                <div class="flow-content">
+                                    <div class="flow-phases">
+                                        <div class="phase-item"><div class="phase-number">1</div><div class="phase-content"><div class="phase-header"><span class="phase-name">目标设定</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">明确项目的核心目标</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">2</div><div class="phase-content"><div class="phase-header"><span class="phase-name">任务分解</span><span class="phase-duration">⏱️ 20分钟</span></div><div class="phase-instruction">将目标分解为可执行的任务</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">3</div><div class="phase-content"><div class="phase-header"><span class="phase-name">排期规划</span><span class="phase-duration">⏱️ 15分钟</span></div><div class="phase-instruction">根据优先级安排时间表</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">4</div><div class="phase-content"><div class="phase-header"><span class="phase-name">资源确认</span><span class="phase-duration">⏱️ 10分钟</span></div><div class="phase-instruction">确认所需资源和可能的风险</div></div></div>
+                                        <div class="phase-item"><div class="phase-number">5</div><div class="phase-content"><div class="phase-header"><span class="phase-name">承诺确认</span><span class="phase-duration">⏱️ 5分钟</span></div><div class="phase-instruction">每个负责人确认自己的承诺</div></div></div>
+                                    </div>
+                                    <button class="start-meeting-btn" onclick="startMeeting('planning')">▶️ 开始会议</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="panel-meeting-idle">
+                    <div class="idle-state">
+                        <div class="avatar-section">
+                            <div class="avatar-container" id="idleAvatar">
+                                <div class="avatar-glow"></div>
+                                <div class="avatar-body" onclick="avatarGreet()">
+                                    <div class="avatar-eyes"><div class="avatar-eye"><div class="avatar-pupil"></div></div><div class="avatar-eye"><div class="avatar-pupil"></div></div></div>
+                                    <div class="avatar-mouth"></div>
+                                    <div class="avatar-name" id="idleAvatarName">慧慧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <h2 class="idle-title gradient-text">准备开始会议</h2>
+                        <p class="idle-text">从流程库选择一个模板，或者让我根据你的设置推荐一个适合的会议类型。</p>
+                        <button class="idle-btn" onclick="switchTab('flows')">选择会议流程</button>
+                    </div>
+                </div>
+                <div class="panel" id="panel-meeting-active">
+                    <div class="meeting-header glass">
+                        <div class="meeting-status">
+                            <div class="status-dot active" id="meetingStatusDot"></div>
+                            <div><div class="meeting-title" id="meetingTitle">头脑风暴</div><div class="meeting-subtitle" id="meetingPhase">1/4 阶段</div></div>
+                        </div>
+                        <div class="meeting-controls">
+                            <button class="control-btn record" id="recordBtn" onclick="toggleRecording()" title="录音">🎙️</button>
+                            <button class="control-btn speech" id="speechBtn" onclick="toggleSpeech()" title="语音播报">🔊</button>
+                            <button class="control-btn pause" id="pauseBtn" onclick="togglePause()">⏸️</button>
+                            <button class="control-btn skip" onclick="nextPhase()">⏭️</button>
+                            <button class="control-btn stop" onclick="showEndMeetingModal()">⏹️</button>
+                        </div>
+                    </div>
+                    <div class="meeting-grid">
+                        <div class="meeting-left">
+                            <div class="avatar-container" id="meetingAvatar" style="width:180px;height:180px;">
+                                <div class="avatar-glow"></div>
+                                <div class="avatar-body" style="width:180px;height:180px;">
+                                    <div class="avatar-eyes" style="gap:32px;">
+                                        <div class="avatar-eye" style="width:32px;height:32px;"><div class="avatar-pupil" style="width:16px;height:16px;top:4px;left:4px;"></div></div>
+                                        <div class="avatar-eye" style="width:32px;height:32px;"><div class="avatar-pupil" style="width:16px;height:16px;top:4px;left:4px;"></div></div>
+                                    </div>
+                                    <div class="avatar-mouth" style="width:60px;height:30px;"></div>
+                                </div>
+                                <div class="avatar-name" id="meetingAvatarName" style="bottom:-35px;">慧慧</div>
+                            </div>
+                            <div class="timer-container">
+                                <svg class="timer-ring" width="220" height="220" viewBox="0 0 220 220">
+                                    <circle class="timer-bg" cx="110" cy="110" r="95"/>
+                                    <circle class="timer-progress" id="timerProgress" cx="110" cy="110" r="95" stroke-dasharray="597" stroke-dashoffset="0"/>
+                                </svg>
+                                <div class="timer-center">
+                                    <div class="timer-phase" id="timerPhase">自由发散</div>
+                                    <div class="timer-display" id="timerDisplay">10:00</div>
+                                    <div class="timer-paused" id="timerPaused" style="display:none;">已暂停</div>
+                                </div>
+                                <div class="timer-warning-ring" id="timerWarning" style="display:none;"></div>
+                            </div>
+                            <div class="timer-controls">
+                                <button class="timer-btn pause" id="timerPauseBtn" onclick="togglePause()">⏸️ 暂停</button>
+                                <button class="timer-btn reset" onclick="resetTimer()">🔄 重置</button>
+                            </div>
+                            <div class="participants-card glass-light">
+                                <div class="participants-header">
+                                    <div class="participants-title">👥 参与者 (<span id="participantCount">0</span>)</div>
+                                </div>
+                                <div class="participants-list" id="participantsList"></div>
+                                <div class="add-participant">
+                                    <input type="text" class="form-input" id="newParticipantInput" placeholder="添加参与者...">
+                                    <button class="add-participant-btn" onclick="addParticipant()">+</button>
+                                </div>
+                            </div>
+                            <div class="record-panel" id="recordPanel" style="display:none;">
+                                <div class="record-header">
+                                    <div class="record-title">🎙️ 会议录音</div>
+                                    <div class="record-status" id="recordStatus">未录音</div>
+                                </div>
+                                <div class="record-waves" id="recordWaves" style="display:none;">
+                                    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                                </div>
+                                <div class="record-duration" id="recordDuration">00:00:00</div>
+                                <div class="record-controls">
+                                    <button class="record-btn start" id="recordStartBtn" onclick="startRecording()">开始录音</button>
+                                    <button class="record-btn stop" id="recordStopBtn" onclick="stopRecording()" style="display:none;">停止录音</button>
+                                </div>
+                            </div>
+                            <div class="speech-panel" id="speechPanel" style="display:none;">
+                                <div class="speech-header">
+                                    <div class="speech-title">🔊 语音播报</div>
+                                    <div class="speech-controls">
+                                        <button class="speech-btn speak" id="speechSpeakBtn" onclick="speakText()">播报</button>
+                                    </div>
+                                </div>
+                                <textarea class="speech-input" id="speechInput" placeholder="输入要播报的文字，数字人会为您朗读..."></textarea>
+                            </div>
+                        </div>
+                        <div class="chat-section glass-light">
+                            <div class="chat-header">💬 对话记录</div>
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="chat-bubble avatar">
+                                    <div class="chat-text">大家好，我是慧慧！让我们开始今天的头脑风暴会议吧！</div>
+                                    <div class="chat-time">现在</div>
+                                </div>
+                            </div>
+                            <div class="quick-actions" id="quickActions">
+                                <button class="quick-action" onclick="sendQuickMessage('⏱️ 提醒：时间宝贵，注意效率')">⏱️ 守时</button>
+                                <button class="quick-action" onclick="sendQuickMessage('⚖️ 每个人都可以发言')">⚖️ 平等</button>
+                                <button class="quick-action" onclick="sendQuickMessage('🎯 聚焦目标')">🎯 效率</button>
+                            </div>
+                            <div class="notes-section" id="notesSection">
+                                <div class="notes-header">
+                                    <div class="notes-title">📝 会议纪要</div>
+                                    <div class="notes-actions">
+                                        <button class="notes-btn add" onclick="showAddNoteInput()">+ 添加</button>
+                                        <button class="notes-btn export" onclick="exportNotes()">📥 导出</button>
+                                    </div>
+                                </div>
+                                <div class="notes-list" id="notesList"></div>
+                                <div class="add-note-form" id="addNoteForm" style="display:none;">
+                                    <input type="text" id="noteInput" placeholder="输入纪要内容...">
+                                    <button onclick="addNote()">添加</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <aside class="sidebar">
+                <div class="sidebar-card glass">
+                    <h3 class="sidebar-title"><span>✨</span> 数字人档案</h3>
+                    <div class="stat-row"><span class="stat-label">名字</span><span class="stat-value" id="sidebarName">慧慧</span></div>
+                    <div class="stat-row"><span class="stat-label">说话风格</span><span class="stat-value" id="sidebarStyle">轻松随意</span></div>
+                    <div class="stat-row"><span class="stat-label">启用原则</span><span class="stat-value" style="color:var(--primary);" id="sidebarPrinciples">4 / 6</span></div>
+                    <div class="stat-row"><span class="stat-label">会议模板</span><span class="stat-value">5</span></div>
+                </div>
+                <div class="sidebar-card glass">
+                    <h3 class="sidebar-title"><span>⚖️</span> 核心原则</h3>
+                    <div id="sidebarPrinciplesList"></div>
+                </div>
+                <div class="sidebar-card glass">
+                    <h3 class="sidebar-title"><span>💡</span> 使用提示</h3>
+                    <p class="tip-item">• 点击头像可以触发问候</p>
+                    <p class="tip-item">• 会议中可随时添加参与者</p>
+                    <p class="tip-item">• 记得导出会议纪要</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <div class="modal-overlay" id="endMeetingModal">
+        <div class="modal-content">
+            <h3 class="modal-title">确认结束会议</h3>
+            <p class="modal-text">确定要结束当前会议吗？会议录音和纪要将保留在本地。</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="hideEndMeetingModal()">取消</button>
+                <button class="modal-btn primary" onclick="confirmEndMeeting()">确认结束</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const state = {
+            avatarName: '慧慧', avatarStyle: 'futuristic', voiceStyle: 'gentle', speakingStyle: 'friendly',
+            values: ['相信每个想法都有价值', '追求高效而有意义的会议', '尊重每个人的时间和观点'],
+            principles: { time: true, equality: true, consensus: true, emotion: false, result: true, creativity: false },
+            meeting: { isActive: false, isPaused: false, currentFlow: null, currentPhaseIndex: 0, timeRemaining: 0, totalTime: 0, participants: [], notes: [] }
+        };
+        const flows = {
+            brainstorm: { name: '头脑风暴', phases: [{ name: '开场介绍', duration: 2 }, { name: '自由发散', duration: 10 }, { name: '分类整理', duration: 5 }, { name: '投票排序', duration: 3 }] },
+            decision: { name: '决策讨论', phases: [{ name: '背景说明', duration: 5 }, { name: '选项分析', duration: 10 }, { name: '利弊辩论', duration: 10 }, { name: '决策确认', duration: 5 }] },
+            review: { name: '项目复盘', phases: [{ name: '成果回顾', duration: 5 }, { name: '问题挖掘', duration: 15 }, { name: '原因分析', duration: 10 }, { name: '改进计划', duration: 10 }] },
+            standup: { name: '每日站会', phases: [{ name: '昨日完成', duration: 4 }, { name: '今日计划', duration: 4 }, { name: '障碍识别', duration: 7 }] },
+            planning: { name: '规划会议', phases: [{ name: '目标设定', duration: 10 }, { name: '任务分解', duration: 20 }, { name: '排期规划', duration: 15 }, { name: '资源确认', duration: 10 }, { name: '承诺确认', duration: 5 }] }
+        };
+        let timerInterval = null, mediaRecorder = null, audioChunks = [], isRecording = false, recordingStartTime = null, recordingInterval = null;
+        let speechSynthesis = window.speechSynthesis, isSpeaking = false;
+        function init() { createParticles(); setupEventListeners(); loadState(); updateUI(); }
+        function createParticles() { const container = document.getElementById('particles'); for (let i = 0; i < 20; i++) { const particle = document.createElement('div'); particle.className = 'particle'; particle.style.left = Math.random() * 100 + '%'; particle.style.animationDelay = Math.random() * 15 + 's'; particle.style.animationDuration = (15 + Math.random() * 10) + 's'; container.appendChild(particle); } }
+        function setupEventListeners() {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+            document.querySelectorAll('.avatar-option').forEach(opt => opt.addEventListener('click', () => { document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); state.avatarStyle = opt.dataset.style; saveState(); updateUI(); }));
+            document.querySelectorAll('.voice-option').forEach(opt => opt.addEventListener('click', () => { document.querySelectorAll('.voice-option').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); state.voiceStyle = opt.dataset.voice; saveState(); }));
+            document.querySelectorAll('.style-option, .principle-card').forEach(opt => opt.addEventListener('click', () => { if (opt.classList.contains('principle-card')) { const principle = opt.dataset.principle; state.principles[principle] = !state.principles[principle]; updatePrinciplesUI(); saveState(); } else { document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); state.speakingStyle = opt.dataset.style; saveState(); updateUI(); } }));
+            document.getElementById('avatarName').addEventListener('input', (e) => { state.avatarName = e.target.value || '慧慧'; saveState(); updateUI(); });
+            document.getElementById('newValueInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addValue(); });
+            document.getElementById('newParticipantInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addParticipant(); });
+            document.getElementById('noteInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addNote(); });
+            document.getElementById('speechInput').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); speakText(); } });
+            document.addEventListener('mousemove', (e) => { document.querySelectorAll('.avatar-pupil').forEach(pupil => { const rect = pupil.parentElement.getBoundingClientRect(); const eyeCenterX = rect.left + rect.width / 2; const eyeCenterY = rect.top + rect.height / 2; const deltaX = (e.clientX - eyeCenterX) / 20; const deltaY = (e.clientY - eyeCenterY) / 20; pupil.style.transform = `translate(${deltaX}px, ${deltaY}px)`; }); });
+        }
+        function switchTab(tab) { document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab)); document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active')); if (tab === 'meeting') { if (state.meeting.isActive) { document.getElementById('panel-meeting-active').classList.add('active'); document.getElementById('recordPanel').style.display = 'block'; document.getElementById('notesSection').style.display = 'block'; } else { document.getElementById('panel-meeting-idle').classList.add('active'); document.getElementById('recordPanel').style.display = 'none'; document.getElementById('notesSection').style.display = 'none'; } } else { document.getElementById('panel-' + tab).classList.add('active'); document.getElementById('recordPanel').style.display = 'none'; document.getElementById('notesSection').style.display = 'none'; } }
+        function updateUI() { document.getElementById('sidebarName').textContent = state.avatarName; document.getElementById('idleAvatarName').textContent = state.avatarName; document.getElementById('meetingAvatarName').textContent = state.avatarName; document.getElementById('avatarName').value = state.avatarName; const styleNames = { formal: '正式严谨', casual: '轻松随意', humorous: '幽默风趣', poetic: '诗意文雅' }; document.getElementById('sidebarStyle').textContent = styleNames[state.speakingStyle]; document.getElementById('valuesList').innerHTML = state.values.map(v => `<div class="value-item"><span class="value-item-icon">✦</span><span class="value-item-text">${v}</span><button class="value-item-delete" onclick="deleteValue(this)">🗑️</button></div>`).join(''); updatePrinciplesUI(); updateNotesUI(); }
+        function updatePrinciplesUI() { document.querySelectorAll('.principle-card').forEach(card => { const principle = card.dataset.principle; card.classList.toggle('enabled', state.principles[principle]); card.classList.toggle('disabled', !state.principles[principle]); }); const enabledPrinciples = Object.entries(state.principles).filter(([_, enabled]) => enabled).map(([key, _]) => { const icons = { time: '⏱️', equality: '⚖️', consensus: '🤝', emotion: '💗', result: '🎯', creativity: '💡' }; const names = { time: '守时原则', equality: '平等原则', consensus: '共识原则', emotion: '情感原则', result: '效率原则', creativity: '创意原则' }; return `<div class="principle-item"><span>${icons[key]}</span><span>${names[key]}</span></div>`; }); document.getElementById('sidebarPrinciplesList').innerHTML = enabledPrinciples.join(''); document.getElementById('sidebarPrinciples').textContent = `${enabledPrinciples.length} / 6`; }
+        function addValue() { const input = document.getElementById('newValueInput'); const value = input.value.trim(); if (value) { state.values.push(value); saveState(); updateUI(); input.value = ''; } }
+        function deleteValue(btn) { const item = btn.parentElement; const text = item.querySelector('.value-item-text').textContent; state.values = state.values.filter(v => v !== text); saveState(); updateUI(); }
+        function toggleFlow(header) { const card = header.parentElement; card.classList.toggle('expanded'); }
+        function startMeeting(flowKey) { const flow = flows[flowKey]; state.meeting = { isActive: true, isPaused: false, currentFlow: flowKey, currentPhaseIndex: 0, timeRemaining: flow.phases[0].duration * 60, totalTime: flow.phases[0].duration * 60, participants: [], notes: [] }; document.getElementById('meetingTitle').textContent = flow.name; document.getElementById('meetingPhase').textContent = `1/${flow.phases.length} 阶段`; document.getElementById('timerPhase').textContent = flow.phases[0].name; document.getElementById('chatMessages').innerHTML = `<div class="chat-bubble avatar"><div class="chat-text">大家好，我是${state.avatarName}！让我们开始${flow.name}吧。</div><div class="chat-time">现在</div></div>`; const welcomeMessages = []; if (state.principles.time) welcomeMessages.push('⏱️ 我们会严格控制时间'); if (state.principles.equality) welcomeMessages.push('⚖️ 每个人都有发言机会'); if (welcomeMessages.length > 0) { setTimeout(() => { addChatMessage(state.avatarName, welcomeMessages.join('，') + '。'); }, 2000); } switchTab('meeting'); document.getElementById('panel-meeting-idle').classList.remove('active'); document.getElementById('panel-meeting-active').classList.add('active'); document.getElementById('recordPanel').style.display = 'block'; document.getElementById('notesSection').style.display = 'block'; speakWelcomeMessage(flow.name); updateTimer(); startTimer(); }
+        function speakWelcomeMessage(flowName) { const message = `大家好，我是${state.avatarName}！让我们开始${flowName}吧。`; speak(message); }
+        function startTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = setInterval(() => { if (!state.meeting.isPaused && state.meeting.timeRemaining > 0) { state.meeting.timeRemaining--; updateTimer(); if (state.meeting.timeRemaining === 60) { addChatMessage(state.avatarName, '⏱️ 提醒：还剩1分钟！'); speak('提醒，还剩1分钟！'); } if (state.meeting.timeRemaining === 0) { addChatMessage(state.avatarName, '⏱️ 时间到！'); speak('时间到！'); } } }, 1000); }
+        function updateTimer() { const minutes = Math.floor(state.meeting.timeRemaining / 60); const seconds = state.meeting.timeRemaining % 60; document.getElementById('timerDisplay').textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0'); const progress = document.getElementById('timerProgress'); const circumference = 2 * Math.PI * 95; const offset = circumference * (1 - state.meeting.timeRemaining / state.meeting.totalTime); progress.style.strokeDashoffset = offset; const isWarning = state.meeting.timeRemaining <= 60 && state.meeting.timeRemaining > 0; progress.classList.toggle('warning', isWarning); document.getElementById('timerWarning').style.display = isWarning ? 'block' : 'none'; }
+        function togglePause() { state.meeting.isPaused = !state.meeting.isPaused; const statusDot = document.getElementById('meetingStatusDot'); const timerPaused = document.getElementById('timerPaused'); const pauseBtn = document.getElementById('pauseBtn'); const timerPauseBtn = document.getElementById('timerPauseBtn'); statusDot.classList.toggle('active', !state.meeting.isPaused); statusDot.classList.toggle('paused', state.meeting.isPaused); timerPaused.style.display = state.meeting.isPaused ? 'block' : 'none'; if (state.meeting.isPaused) { pauseBtn.innerHTML = '▶️'; pauseBtn.classList.remove('pause'); pauseBtn.classList.add('play'); timerPauseBtn.innerHTML = '▶️ 继续'; timerPauseBtn.classList.remove('pause'); timerPauseBtn.classList.add('play'); } else { pauseBtn.innerHTML = '⏸️'; pauseBtn.classList.add('pause'); pauseBtn.classList.remove('play'); timerPauseBtn.innerHTML = '⏸️ 暂停'; timerPauseBtn.classList.add('pause'); timerPauseBtn.classList.remove('play'); } }
+        function resetTimer() { state.meeting.timeRemaining = state.meeting.totalTime; updateTimer(); }
+        function nextPhase() { const flow = flows[state.meeting.currentFlow]; const nextIndex = state.meeting.currentPhaseIndex + 1; if (nextIndex >= flow.phases.length) { showEndMeetingModal(); return; } state.meeting.currentPhaseIndex = nextIndex; const nextPhase = flow.phases[nextIndex]; state.meeting.timeRemaining = nextPhase.duration * 60; state.meeting.totalTime = nextPhase.duration * 60; document.getElementById('meetingPhase').textContent = `${nextIndex + 1}/${flow.phases.length} 阶段`; document.getElementById('timerPhase').textContent = nextPhase.name; addChatMessage(state.avatarName, `进入下一环节：${nextPhase.name}`); speak(`进入下一环节：${nextPhase.name}`); updateTimer(); }
+        function showEndMeetingModal() { document.getElementById('endMeetingModal').classList.add('active'); }
+        function hideEndMeetingModal() { document.getElementById('endMeetingModal').classList.remove('active'); }
+        function confirmEndMeeting() { hideEndMeetingModal(); endMeeting(); }
+        function endMeeting() { state.meeting.isActive = false; if (timerInterval) clearInterval(timerInterval); if (isRecording) stopRecording(); addChatMessage(state.avatarName, `${state.avatarName}期待下次会议！`); speak(`${state.avatarName}期待下次会议！感谢大家的参与！`); setTimeout(() => { switchTab('meeting'); document.getElementById('panel-meeting-active').classList.remove('active'); document.getElementById('panel-meeting-idle').classList.add('active'); document.getElementById('recordPanel').style.display = 'none'; }, 3000); }
+        function addChatMessage(sender, text) { const chatMessages = document.getElementById('chatMessages'); const message = document.createElement('div'); message.className = 'chat-bubble avatar'; message.innerHTML = `<div class="chat-text">${text}</div><div class="chat-time">${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>`; chatMessages.appendChild(message); chatMessages.scrollTop = chatMessages.scrollHeight; }
+        function sendQuickMessage(text) { addChatMessage(state.avatarName, text); speak(text); }
+        function addParticipant() { const input = document.getElementById('newParticipantInput'); const name = input.value.trim(); if (name && !state.meeting.participants.includes(name)) { state.meeting.participants.push(name); updateParticipantsUI(); addChatMessage(state.avatarName, `欢迎 ${name} 加入会议！👋`); speak(`欢迎 ${name} 加入会议！`); input.value = ''; } }
+        function removeParticipant(name) { state.meeting.participants = state.meeting.participants.filter(p => p !== name); updateParticipantsUI(); }
+        function updateParticipantsUI() { document.getElementById('participantCount').textContent = state.meeting.participants.length; document.getElementById('participantsList').innerHTML = state.meeting.participants.map(p => `<span class="participant-tag">${p}<span class="participant-remove" onclick="removeParticipant('${p}')">×</span></span>`).join(''); }
+        function avatarGreet() { const greetings = ['你好！有什么我可以帮助你的吗？', '准备好开始会议了吗？', '期待与你一起主持精彩的会议！', '让我们创造高效而有意义的会议吧！']; const greeting = greetings[Math.floor(Math.random() * greetings.length)]; const chatMessages = document.getElementById('chatMessages'); const message = document.createElement('div'); message.className = 'chat-bubble avatar'; message.innerHTML = `<div class="chat-text">${greeting}</div><div class="chat-time">现在</div>`; chatMessages.appendChild(message); chatMessages.scrollTop = chatMessages.scrollHeight; }
+        async function startRecording() { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showRecordingError('您的浏览器不支持录音功能，请使用Chrome、Edge或Firefox等现代浏览器。'); return; } if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') { showRecordingError('录音功能需要安全连接。请确保使用HTTPS访问此页面，或者使用localhost。'); return; } try { const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); audioChunks = []; mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); }; mediaRecorder.onstop = () => { const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); const audioUrl = URL.createObjectURL(audioBlob); const a = document.createElement('a'); a.href = audioUrl; a.download = `会议录音_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.webm`; a.click(); }; mediaRecorder.start(); isRecording = true; recordingStartTime = Date.now(); document.getElementById('recordStartBtn').style.display = 'none'; document.getElementById('recordStopBtn').style.display = 'inline-flex'; document.getElementById('recordStatus').textContent = '录音中...'; document.getElementById('recordStatus').classList.add('recording'); document.getElementById('recordWaves').style.display = 'flex'; document.getElementById('recordBtn').classList.add('recording'); recordingInterval = setInterval(() => { const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000); const hours = Math.floor(elapsed / 3600); const minutes = Math.floor((elapsed % 3600) / 60); const seconds = elapsed % 60; document.getElementById('recordDuration').textContent = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0'); }, 1000); } catch (err) { console.error('Error accessing microphone:', err); let errorMessage = '无法访问麦克风，请检查权限设置。'; if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') { errorMessage = '麦克风访问被拒绝。请在浏览器地址栏旁边点击允许麦克风权限，然后刷新页面重试。'; } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') { errorMessage = '未找到麦克风设备。请确保已连接麦克风并正确设置。'; } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') { errorMessage = '麦克风正在被其他应用使用。请关闭其他使用麦克风的程序后重试。'; } else if (err.name === 'OverconstrainedError') { errorMessage = '麦克风设置不支持。请尝试刷新页面。'; } else if (err.name === 'SecurityError') { errorMessage = '录音功能需要安全连接。请使用HTTPS访问此页面。'; } showRecordingError(errorMessage); } }
+        function showRecordingError(message) { const errorDiv = document.createElement('div'); errorDiv.className = 'recording-error'; errorDiv.innerHTML = `<div style="background:rgba(248,113,113,0.2);border:1px solid rgba(248,113,113,0.4);border-radius:12px;padding:20px;margin-top:12px;"><div style="font-size:14px;font-weight:600;color:#f87171;margin-bottom:8px;">⚠️ 录音功能无法使用</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">${message}</div><div style="font-size:12px;color:var(--text-secondary);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);"><strong>解决方法：</strong><br>1. 点击浏览器地址栏左侧的锁图标 🔒<br>2. 允许麦克风权限<br>3. 刷新页面后重试</div></div>`; const recordPanel = document.getElementById('recordPanel'); const existingError = recordPanel.querySelector('.recording-error'); if (existingError) existingError.remove(); recordPanel.appendChild(errorDiv); setTimeout(() => { const error = recordPanel.querySelector('.recording-error'); if (error) error.remove(); }, 10000); }
+        function stopRecording() { if (mediaRecorder && isRecording) { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop()); isRecording = false; clearInterval(recordingInterval); document.getElementById('recordStartBtn').style.display = 'inline-flex'; document.getElementById('recordStopBtn').style.display = 'none'; document.getElementById('recordStatus').textContent = '已保存'; document.getElementById('recordStatus').classList.remove('recording'); document.getElementById('recordWaves').style.display = 'none'; document.getElementById('recordBtn').classList.remove('recording'); addChatMessage(state.avatarName, '📥 会议录音已保存并下载。'); } }
+        function toggleRecording() { if (isRecording) { stopRecording(); } else { startRecording(); } }
+        function toggleSpeech() { const panel = document.getElementById('speechPanel'); const btn = document.getElementById('speechBtn'); panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; btn.classList.toggle('speaking', panel.style.display === 'block'); }
+        function speak(text) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-CN'; utterance.rate = 1.0; utterance.pitch = 1.0; const voices = speechSynthesis.getVoices(); const chineseVoice = voices.find(v => v.lang.includes('zh')); if (chineseVoice) { utterance.voice = chineseVoice; } utterance.onstart = () => { isSpeaking = true; document.getElementById('speechBtn').classList.add('speaking'); }; utterance.onend = () => { isSpeaking = false; document.getElementById('speechBtn').classList.remove('speaking'); }; speechSynthesis.speak(utterance); } }
+        function speakText() { const input = document.getElementById('speechInput'); const text = input.value.trim(); if (text) { speak(text); input.value = ''; } }
+        function showAddNoteInput() { const form = document.getElementById('addNoteForm'); form.style.display = form.style.display === 'none' ? 'flex' : 'none'; if (form.style.display === 'flex') { document.getElementById('noteInput').focus(); } }
+        function addNote() { const input = document.getElementById('noteInput'); const content = input.value.trim(); if (content) { state.meeting.notes.push({ id: Date.now(), content: content, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }); input.value = ''; updateNotesUI(); saveState(); } }
+        function deleteNote(id) { state.meeting.notes = state.meeting.notes.filter(n => n.id !== id); updateNotesUI(); saveState(); }
+        function updateNotesUI() { const notesList = document.getElementById('notesList'); if (state.meeting.notes.length === 0) { notesList.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px;">暂无会议纪要</p>'; } else { notesList.innerHTML = state.meeting.notes.map(note => `<div class="note-item"><span class="note-time">${note.time}</span><span class="note-content">${note.content}</span><button class="note-delete" onclick="deleteNote(${note.id})">×</button></div>`).join(''); } }
+        function exportNotes() { if (state.meeting.notes.length === 0) { alert('暂无会议纪要可导出。'); return; } const flow = flows[state.meeting.currentFlow]; let content = `会议纪要\n`; content += `会议类型：${flow ? flow.name : '未指定'}\n`; content += `生成时间：${new Date().toLocaleString('zh-CN')}\n`; content += `数字人：${state.avatarName}\n`; content += `\n参与人员：${state.meeting.participants.join('、') || '无'}\n`; content += `\n会议纪要：\n`; state.meeting.notes.forEach((note, index) => { content += `${index + 1}. [${note.time}] ${note.content}\n`; }); content += `\n\n--- 由 MeetingSage 生成 ---`; const blob = new Blob([content], { type: 'text/plain;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `会议纪要_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.txt`; a.click(); addChatMessage(state.avatarName, '📥 会议纪要已导出。'); }
+        function saveState() { localStorage.setItem('meetingSageState', JSON.stringify(state)); }
+        function loadState() { const saved = localStorage.getItem('meetingSageState'); if (saved) { const loaded = JSON.parse(saved); Object.assign(state, loaded); } }
+        if ('speechSynthesis' in window) { speechSynthesis.onvoiceschanged = () => {}; }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
